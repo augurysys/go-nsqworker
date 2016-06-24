@@ -30,7 +30,7 @@ func (lw *logWrapper) Output(calldepth int, s string) error {
 
 func (nw *NsqWorker) ToggleLogging(enable bool) {
 	if enable {
-		nw.log.log = os.Stderr
+		nw.log.log.Out = os.Stderr
 	} else {
 		nw.log.log.Out = ioutil.Discard
 	}

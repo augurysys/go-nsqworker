@@ -7,9 +7,9 @@ import (
 
 type NsqWorker struct {
 	consumer *nsq.Consumer
-	log	*logWrapper
-
 	consumerLock sync.Mutex
+
+	log	*logWrapper
 }
 
 func New(topic, channel string) (*NsqWorker, error) {
@@ -27,7 +27,9 @@ func New(topic, channel string) (*NsqWorker, error) {
 
 	nsqw.consumer.SetLogger(nsqw.log, nsq.LogLevelInfo)
 
-	return nsqw, nil
+	nsqw.consumer.AddHandler(&Router{nsqw.log})
+
+	return &nsqw, nil
 }
 
 func (nsqw *NsqWorker) Start(nsqlookupd string) error {
