@@ -2,17 +2,20 @@ package nsqworker
 
 import (
 	"github.com/nsqio/go-nsq"
-	"sync"
 )
 
 type NsqWorker struct {
 	consumer *nsq.Consumer
-	consumerLock sync.Mutex
 
-	log	*logWrapper
+	lookupd  string
+
+	log      *logWrapper
+	router   *router
+
+	running	bool
 }
 
-func New(topic, channel string) (*NsqWorker, error) {
+func New(topic, channel, lookupd string) (*NsqWorker, error) {
 
 	nsqw := NsqWorker{}
 	nsqw.log = newLogWrapper(topic, channel)
@@ -27,27 +30,38 @@ func New(topic, channel string) (*NsqWorker, error) {
 
 	nsqw.consumer.SetLogger(nsqw.log, nsq.LogLevelInfo)
 
-	nsqw.consumer.AddHandler(&Router{nsqw.log})
+	nsqw.lookupd = lookupd
+	nsqw.router = &router{log: nsqw.log}
 
 	return &nsqw, nil
 }
 
-func (nsqw *NsqWorker) Start(nsqlookupd string) error {
-	nsqw.log.Infof("connecting nsqworker to nsqlookupd host [%s]", nsqlookupd)
-	return nsqw.consumer.ConnectToNSQLookupd(nsqlookupd)
+func (nw *NsqWorker) RegisterRoute(route Route) error {
+
+	
+	nw.router.routes = append(nw.router.routes, route)
+	return nil
 }
 
-func (nsqw *NsqWorker) Stop() {
-	nsqw.consumerLock.Lock()
-	defer nsqw.consumerLock.Unlock()
+func (nw *NsqWorker) Start() error {
+	nw.consumer.AddHandler(nw.router)
 
-	nsqw.log.Debug("try to stop nsq consumer")
-	nsqw.consumer.Stop()
-	n := <- nsqw.consumer.StopChan
+	nw.running = true
 
-	if n == 0 {
-		nsqw.log.Debug("nsq consumer is already stopped")
-	} else {
-		nsqw.log.Debug("nsq consumer stopped successfully")
-	}
+	nw.log.Infof("connecting nsqworker to nsqlookupd host [%s]", nw.lookupd)
+	return  nw.consumer.ConnectToNSQLookupd(nw.lookupd)
+}
+
+func (nw *NsqWorker) Close() error{
+	nw.stopConsumer()
+	return nil
+}
+
+func (nw *NsqWorker) stopConsumer() {
+
+	nw.log.Debug("try to stop nsq consumer")
+	nw.consumer.Stop()
+	<- nw.consumer.StopChan
+
+	nw.log.Info("nsq consumer stopped successfully")
 }
