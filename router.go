@@ -42,10 +42,10 @@ func (r *router) touchLoop(m *nsq.Message) {
 	for {
 		time.Sleep(touchInterval)
 		if m.HasResponded() {
-			r.log.Debugf("message %v has responded, exiting touch loop", m.ID)
+			r.log.Debugf("message %s has responded, exiting touch loop", m.ID)
 			break
 		}
-		r.log.Debugf("touching message %v", m.ID)
+		r.log.Debugf("touching message %s", m.ID)
 		m.Touch()
 	}
 }

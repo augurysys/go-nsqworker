@@ -17,23 +17,23 @@ type NsqWorker struct {
 
 func New(topic, channel, lookupd string) (*NsqWorker, error) {
 
-	nsqw := NsqWorker{}
-	nsqw.log = newLogWrapper(topic, channel)
+	nw := NsqWorker{}
+	nw.log = newLogWrapper(topic, channel)
 	config := nsq.NewConfig()
 
 	var err error
-	nsqw.consumer, err = nsq.NewConsumer(topic, channel, config)
+	nw.consumer, err = nsq.NewConsumer(topic, channel, config)
 	if err != nil {
-		nsqw.log.Error(err)
+		nw.log.Error(err)
 		return nil, err
 	}
 
-	nsqw.consumer.SetLogger(nsqw.log, nsq.LogLevelInfo)
+	nw.consumer.SetLogger(nw.log, nsq.LogLevelInfo)
 
-	nsqw.lookupd = lookupd
-	nsqw.router = &router{log: nsqw.log}
+	nw.lookupd = lookupd
+	nw.router = &router{log: nw.log}
 
-	return &nsqw, nil
+	return &nw, nil
 }
 
 func (nw *NsqWorker) RegisterRoute(route Route) error {
@@ -51,6 +51,7 @@ func (nw *NsqWorker) Start() error {
 	return  nw.consumer.ConnectToNSQLookupd(nw.lookupd)
 }
 
+// Implement the Closer interface
 func (nw *NsqWorker) Close() error{
 	nw.stopConsumer()
 	return nil

@@ -15,6 +15,12 @@ func newLogWrapper(topic, channel string) *logWrapper {
 	log := logrus.New()
 	log.Out = ioutil.Discard
 
+	formatter := new(logrus.TextFormatter)
+	formatter.DisableColors = true
+
+	log.Formatter = formatter
+
+
 	entry := log.WithFields(logrus.Fields{
 		"topic":	topic,
 		"channel":	channel,
@@ -23,8 +29,9 @@ func newLogWrapper(topic, channel string) *logWrapper {
 	return &logWrapper{log, entry}
 }
 
+// Capture nsq.Consumer logging messages
 func (lw *logWrapper) Output(calldepth int, s string) error {
-	lw.Info(s)
+	lw.Debug(s)
 	return nil
 }
 
