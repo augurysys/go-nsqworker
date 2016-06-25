@@ -38,7 +38,6 @@ func New(topic, channel, lookupd string) (*NsqWorker, error) {
 
 func (nw *NsqWorker) RegisterRoute(route Route) error {
 
-	
 	nw.router.routes = append(nw.router.routes, route)
 	return nil
 }
