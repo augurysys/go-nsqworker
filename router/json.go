@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"encoding/json"
+	"github.com/Sirupsen/logrus"
 )
 
 type routeRes struct {
@@ -45,6 +46,8 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 				}
 
 				if match {
+					message.Log.WithFields(logrus.Fields{"route": rt.Route,
+									"condition": jc}).Infof("match found")
 					break
 				}
 			}
@@ -54,7 +57,7 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			res.status = "processing"
-			if res.err = rt.Route(message); res.err != nil {
+			if res.err = rt.Route.ProcessMessage(message); res.err != nil {
 				message.Log.Error(res.err)
 				routesRes <- res
 
@@ -73,13 +76,18 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 	return nil
 }
 
+func (jr *JsonRouter) String() string {
+	return "json router"
+}
+
 type JsonRoute struct {
 	JCs	[]JC
-	Route	func(msg *nsqworker.Message) error
+	Route	nsqworker.Router
 }
 
 type JC interface {
 	Match(body []byte) (bool, error)
+	String() string
 }
 
 type FieldMatch struct {
@@ -101,4 +109,8 @@ func (fm FieldMatch) Match(body []byte) (bool, error) {
 
 	resString := fmt.Sprintf("%s", res)
 	return resString == fm.Value, nil
+}
+
+func (fm FieldMatch) String() string {
+	return fmt.Sprintf("%s:%s", fm.Field, fm.Value)
 }
