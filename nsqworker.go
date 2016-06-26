@@ -6,18 +6,22 @@ import (
 
 type NsqWorker struct {
 	consumer *nsq.Consumer
-
-	lookupd  string
+	topic	string
+	channel	string
+	lookupds  []string
 
 	log      *logWrapper
-	router   *router
+	dispatcher   *dispatcher
+
+
+	routers	[]Router
 
 	running	bool
 }
 
-func New(topic, channel, lookupd string) (*NsqWorker, error) {
+func New(topic, channel string, lookupds []string) (*NsqWorker, error) {
 
-	nw := NsqWorker{}
+	nw := NsqWorker{topic:topic, channel:channel}
 	nw.log = newLogWrapper(topic, channel)
 	config := nsq.NewConfig()
 
@@ -30,25 +34,26 @@ func New(topic, channel, lookupd string) (*NsqWorker, error) {
 
 	nw.consumer.SetLogger(nw.log, nsq.LogLevelInfo)
 
-	nw.lookupd = lookupd
-	nw.router = &router{log: nw.log}
+	nw.lookupds = lookupds
+	nw.routers = make([]Router, 0)
+	nw.dispatcher = &dispatcher{&nw}
 
 	return &nw, nil
 }
 
-func (nw *NsqWorker) RegisterRoute(route Route) error {
+func (nw *NsqWorker) RegisterRouter(router Router) error {
 
-	nw.router.routes = append(nw.router.routes, route)
+	nw.routers = append(nw.routers, router)
 	return nil
 }
 
 func (nw *NsqWorker) Start() error {
-	nw.consumer.AddHandler(nw.router)
+	nw.consumer.AddHandler(nw.dispatcher)
 
 	nw.running = true
+	nw.log.Infof("connecting nsqworker to nsqlookupd host [%s]", nw.lookupds)
 
-	nw.log.Infof("connecting nsqworker to nsqlookupd host [%s]", nw.lookupd)
-	return  nw.consumer.ConnectToNSQLookupd(nw.lookupd)
+	return  nw.consumer.ConnectToNSQLookupds(nw.lookupds)
 }
 
 // Implement the Closer interface
