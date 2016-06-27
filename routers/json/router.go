@@ -16,12 +16,12 @@ func (rr routeRes) Error() string {
 	return fmt.Sprintf("an error occured while %s: error=%s", rr.status, rr.err.Error())
 }
 
-type JsonRouter struct {
-	Routes	[]JsonRoute
+type Router struct {
+	Routes	[]Route
 }
 
 // implement Router interface
-func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
+func (jr *Router) ProcessMessage(message *nsqworker.Message) error {
 
 	routesRes := make(chan routeRes, len(jr.Routes))
 	jsnMessage, err := newJsonMessage(message)
@@ -33,12 +33,12 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 	var wg sync.WaitGroup
 	for _, route := range jr.Routes {
 		wg.Add(1)
-		go func(rt JsonRoute) {
+		go func(rt Route) {
 			defer wg.Done()
 			res := routeRes{status: "matching"}
 
 			var match bool
-			for _, jc := range rt.JCs {
+			for _, jc := range rt.M {
 
 				match, res.err = jc.Match(jsnMessage)
 
@@ -49,7 +49,7 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 				}
 
 				if match {
-					message.Log.WithFields(logrus.Fields{"route": rt.JH,
+					message.Log.WithFields(logrus.Fields{"route": rt.H,
 									"condition": jc}).Infof("match found")
 					break
 				}
@@ -60,7 +60,7 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			res.status = "processing"
-			if res.err = rt.JH(jsnMessage); res.err != nil {
+			if res.err = rt.H(jsnMessage); res.err != nil {
 				message.Log.Error(res.err)
 				routesRes <- res
 
@@ -79,16 +79,16 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 	return nil
 }
 
-func (jr *JsonRouter) String() string {
+func (jr *Router) String() string {
 	return "json router"
 }
 
-type JsonRoute struct {
-	JCs	[]JsonMatcher
-	JH	JsonHandler
+type Route struct {
+	M []Matcher
+	H Handler
 }
 
-type JsonHandler func(*JsonMessage) error
-func (jh JsonHandler) String() string {
+type Handler func(*Message) error
+func (jh Handler) String() string {
 	return nsqworker.GetFunctionName(jh)
 }

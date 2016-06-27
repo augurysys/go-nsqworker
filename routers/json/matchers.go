@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-type JsonMatcher interface {
-	Match(*JsonMessage) (bool, error)
+type Matcher interface {
+	Match(*Message) (bool, error)
 	String() string
 }
 
@@ -15,7 +15,7 @@ type FieldMatch struct {
 	Value	interface{}
 }
 
-func (fm FieldMatch) Match(m *JsonMessage) (match bool, err error) {
+func (fm FieldMatch) Match(m *Message) (match bool, err error) {
 
 	res, ok := m.JsonBody.Get(fm.Field)
 	if ok && reflect.DeepEqual(res, fm.Value) {

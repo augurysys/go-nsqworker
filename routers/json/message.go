@@ -8,21 +8,21 @@ import (
 
 const separator = ":"
 
-type JsonMessage struct {
+type Message struct {
 	*nsqworker.Message
 	JsonBody	*JsonBody
 }
 
 type JsonBody map[string]interface{}
 
-func newJsonMessage(message *nsqworker.Message) (*JsonMessage, error) {
+func newJsonMessage(message *nsqworker.Message) (*Message, error) {
 
 	jsb, err := newJsonBody(message.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return &JsonMessage{message, jsb}, nil
+	return &Message{message, jsb}, nil
 
 }
 
