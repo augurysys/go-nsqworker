@@ -1,11 +1,9 @@
-package router
+package json
 
 import (
 	"github.com/augurysys/go-nsqworker"
-	"github.com/jmespath/go-jmespath"
 	"fmt"
 	"sync"
-	"encoding/json"
 	"github.com/Sirupsen/logrus"
 )
 
@@ -26,6 +24,11 @@ type JsonRouter struct {
 func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 
 	routesRes := make(chan routeRes, len(jr.Routes))
+	jsnMessage, err := newJsonMessage(message)
+	if err != nil {
+		message.Log.Error(err)
+		return err
+	}
 
 	var wg sync.WaitGroup
 	for _, route := range jr.Routes {
@@ -46,7 +49,7 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 				}
 
 				if match {
-					message.Log.WithFields(logrus.Fields{"route": rt.Route,
+					message.Log.WithFields(logrus.Fields{"route": rt.JH,
 									"condition": jc}).Infof("match found")
 					break
 				}
@@ -57,7 +60,7 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			res.status = "processing"
-			if res.err = rt.Route.ProcessMessage(message); res.err != nil {
+			if res.err = rt.JH(jsnMessage); res.err != nil {
 				message.Log.Error(res.err)
 				routesRes <- res
 
@@ -81,36 +84,11 @@ func (jr *JsonRouter) String() string {
 }
 
 type JsonRoute struct {
-	JCs	[]JC
-	Route	nsqworker.Router
+	JCs	[]JsonMatcher
+	JH	JsonHandler
 }
 
-type JC interface {
-	Match(body []byte) (bool, error)
-	String() string
-}
-
-type FieldMatch struct {
-	Field	string
-	Value	string
-}
-
-func (fm FieldMatch) Match(body []byte) (bool, error) {
-
-	var jsn interface{}
-	if err := json.Unmarshal(body, &jsn); err != nil {
-		return false, err
-	}
-
-	res, err := jmespath.Search(fm.Field, jsn)
-	if err != nil {
-		return false, err
-	}
-
-	resString := fmt.Sprintf("%s", res)
-	return resString == fm.Value, nil
-}
-
-func (fm FieldMatch) String() string {
-	return fmt.Sprintf("%s:%s", fm.Field, fm.Value)
+type JsonHandler func(*JsonMessage) error
+func (jh JsonHandler) String() string {
+	return nsqworker.GetFunctionName(jh)
 }
