@@ -37,7 +37,7 @@ func newJsonBody(body []byte) (*JsonBody, error) {
 	return &jsb, nil
 }
 
-func (jsb JsonBody) get(mkey string) (interface{}, bool) {
+func (jsb JsonBody) Get(mkey string) (interface{}, bool) {
 
 	var currObj interface{}
 	var ok bool
@@ -77,7 +77,7 @@ func (jsb JsonBody) get(mkey string) (interface{}, bool) {
 }
 
 func (jsb JsonBody) GetBool(mkey string) (ret, ok bool) {
-	val, ok := jsb.get(mkey)
+	val, ok := jsb.Get(mkey)
 	if ok {
 		switch val.(type) {
 		case bool:
@@ -90,7 +90,7 @@ func (jsb JsonBody) GetBool(mkey string) (ret, ok bool) {
 }
 
 func (jsb JsonBody) GetString(mkey string) (ret string, ok bool) {
-	val, ok := jsb.get(mkey)
+	val, ok := jsb.Get(mkey)
 	if ok {
 		switch val.(type) {
 		case string:
@@ -103,7 +103,7 @@ func (jsb JsonBody) GetString(mkey string) (ret string, ok bool) {
 }
 
 func (jsb JsonBody) GetFloat(mkey string) (ret float64, ok bool) {
-	val, ok := jsb.get(mkey)
+	val, ok := jsb.Get(mkey)
 	if ok {
 		switch val.(type) {
 		case float64:
@@ -116,7 +116,7 @@ func (jsb JsonBody) GetFloat(mkey string) (ret float64, ok bool) {
 }
 
 func (jsb JsonBody) GetArray(mkey string) (ret []interface{}, ok bool) {
-	val, ok := jsb.get(mkey)
+	val, ok := jsb.Get(mkey)
 	if ok {
 		switch val.(type) {
 		case []interface{}:
@@ -129,7 +129,7 @@ func (jsb JsonBody) GetArray(mkey string) (ret []interface{}, ok bool) {
 }
 
 func (jsb JsonBody) GetObject(mkey string) (ret map[string]interface{}, ok bool) {
-	val, ok := jsb.get(mkey)
+	val, ok := jsb.Get(mkey)
 	if ok {
 		switch val.(type) {
 		case map[string]interface{}:

@@ -1,35 +1,27 @@
 package json
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/jmespath/go-jmespath"
+	"reflect"
 )
 
 type JsonMatcher interface {
-	Match(body []byte) (bool, error)
+	Match(*JsonMessage) (bool, error)
 	String() string
 }
 
 type FieldMatch struct {
 	Field	string
-	Value	string
+	Value	interface{}
 }
 
-func (fm FieldMatch) Match(body []byte) (bool, error) {
+func (fm FieldMatch) Match(m *JsonMessage) (match bool, err error) {
 
-	var jsn interface{}
-	if err := json.Unmarshal(body, &jsn); err != nil {
-		return false, err
+	res, ok := m.JsonBody.Get(fm.Field)
+	if ok && reflect.DeepEqual(res, fm.Value) {
+		match = true
 	}
-
-	res, err := jmespath.Search(fm.Field, jsn)
-	if err != nil {
-		return false, err
-	}
-
-	resString := fmt.Sprintf("%s", res)
-	return resString == fm.Value, nil
+	return
 }
 
 func (fm FieldMatch) String() string {

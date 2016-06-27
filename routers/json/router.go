@@ -40,7 +40,7 @@ func (jr *JsonRouter) ProcessMessage(message *nsqworker.Message) error {
 			var match bool
 			for _, jc := range rt.JCs {
 
-				match, res.err = jc.Match(message.Body)
+				match, res.err = jc.Match(jsnMessage)
 
 				if res.err != nil {
 					message.Log.Error(res.err)
