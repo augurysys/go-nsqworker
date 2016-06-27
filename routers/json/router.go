@@ -16,14 +16,13 @@ func (rr routeRes) Error() string {
 	return fmt.Sprintf("an error occured while %s: error=%s", rr.status, rr.err.Error())
 }
 
-type Router struct {
-	Routes	[]Route
-}
+type Router []Route
+
 
 // implement Router interface
-func (jr *Router) ProcessMessage(message *nsqworker.Message) error {
+func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
-	routesRes := make(chan routeRes, len(jr.Routes))
+	routesRes := make(chan routeRes, len(jr))
 	jsnMessage, err := newJsonMessage(message)
 	if err != nil {
 		message.Log.Error(err)
@@ -31,7 +30,7 @@ func (jr *Router) ProcessMessage(message *nsqworker.Message) error {
 	}
 
 	var wg sync.WaitGroup
-	for _, route := range jr.Routes {
+	for _, route := range jr {
 		wg.Add(1)
 		go func(rt Route) {
 			defer wg.Done()
@@ -79,7 +78,7 @@ func (jr *Router) ProcessMessage(message *nsqworker.Message) error {
 	return nil
 }
 
-func (jr *Router) String() string {
+func (jr Router) String() string {
 	return "json router"
 }
 
