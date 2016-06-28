@@ -2,6 +2,7 @@ package nsqworker
 
 import (
 	"github.com/nsqio/go-nsq"
+	"github.com/Sirupsen/logrus"
 )
 
 type NsqWorker struct {
@@ -10,10 +11,10 @@ type NsqWorker struct {
 	channel	string
 	lookupds  []string
 
-	log      *logWrapper
+	log      logrus.FieldLogger
+	internalLogger	*logWrapper
+
 	dispatcher   *dispatcher
-
-
 	routers	[]Router
 
 	running	bool
@@ -22,7 +23,10 @@ type NsqWorker struct {
 func New(topic, channel string, lookupds []string) (*NsqWorker, error) {
 
 	nw := NsqWorker{topic:topic, channel:channel}
-	nw.log = newLogWrapper(topic, channel)
+
+	nw.internalLogger = newLogWrapper(topic, channel)
+	nw.log = nw.internalLogger
+
 	config := nsq.NewConfig()
 
 	var err error
@@ -32,7 +36,7 @@ func New(topic, channel string, lookupds []string) (*NsqWorker, error) {
 		return nil, err
 	}
 
-	nw.consumer.SetLogger(nw.log, nsq.LogLevelInfo)
+	nw.consumer.SetLogger(nw.internalLogger, nsq.LogLevelInfo)
 
 	nw.lookupds = lookupds
 	nw.routers = make([]Router, 0)
@@ -50,7 +54,7 @@ func (nw *NsqWorker) RegisterRouter(router Router) error {
 func (nw *NsqWorker) Start() error {
 	nw.consumer.AddHandler(nw.dispatcher)
 
-	nw.running = true
+	nw. running = true
 	nw.log.Infof("connecting nsqworker to nsqlookupd host [%s]", nw.lookupds)
 
 	return  nw.consumer.ConnectToNSQLookupds(nw.lookupds)

@@ -20,7 +20,7 @@ func (d *dispatcher) HandleMessage(message *nsq.Message) error {
 	message.DisableAutoResponse()
 	go d.touchLoop(message)
 
-	msg := newMessage(message, d.nsqworker.topic, d.nsqworker.channel, d.nsqworker.log.log)
+	msg := newMessage(message, d.nsqworker.topic, d.nsqworker.channel, d.nsqworker.log)
 	var wg sync.WaitGroup
 	for _, router := range d.nsqworker.routers {
 		wg.Add(1)

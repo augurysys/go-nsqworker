@@ -37,16 +37,24 @@ func (lw *logWrapper) Output(calldepth int, s string) error {
 
 func (nw *NsqWorker) ToggleLogging(enable bool) {
 	if enable {
-		nw.log.log.Out = os.Stderr
+		nw.internalLogger.log.Out = os.Stderr
 	} else {
-		nw.log.log.Out = ioutil.Discard
+		nw.internalLogger.log.Out = ioutil.Discard
 	}
 }
 
 func (nw *NsqWorker) ToggleDebug(enable bool) {
 	if enable {
-		nw.log.log.Level = logrus.DebugLevel
+		nw.internalLogger.log.Level = logrus.DebugLevel
 	} else {
-		nw.log.log.Level = logrus.InfoLevel
+		nw.internalLogger.log.Level = logrus.InfoLevel
 	}
+}
+
+func (nw *NsqWorker) UseExternalLogger(extLogger logrus.FieldLogger) {
+	nw.log = extLogger
+}
+
+func (nw *NsqWorker) UseInternalLogger() {
+	nw.log = nw.internalLogger
 }

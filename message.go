@@ -20,7 +20,7 @@ type Message struct {
 }
 
 
-func newMessage(original *nsq.Message, topic, channel string, log *logrus.Logger) *Message {
+func newMessage(original *nsq.Message, topic, channel string, log logrus.FieldLogger) *Message {
 
 	message := Message{
 		Topic:	topic,
@@ -36,6 +36,7 @@ func newMessage(original *nsq.Message, topic, channel string, log *logrus.Logger
 		"message_timestamp":	message.Timestamp.String(),
 		"channel":	channel,
 		"topic":	topic,
+		"context":	"message",
 	})
 
 	return &message
