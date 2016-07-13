@@ -16,7 +16,7 @@ func (rr routeRes) Error() string {
 	return fmt.Sprintf("an error occured while %s: error=%s", rr.status, rr.err.Error())
 }
 
-type Router []Route
+type Router []*Route
 
 
 // implement Router interface
@@ -32,7 +32,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 	var wg sync.WaitGroup
 	for _, route := range jr {
 		wg.Add(1)
-		go func(rt Route) {
+		go func(rt *Route) {
 			defer wg.Done()
 			res := routeRes{status: "matching"}
 
