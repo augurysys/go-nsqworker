@@ -38,17 +38,20 @@ func (d *dispatcher) HandleMessage(message *nsq.Message) error {
 
 func (d *dispatcher) touchLoop(m *nsq.Message) {
 	touchInterval := 30 * time.Second
-	lastTouch := time.Now()
+	ticker := time.NewTicker(touchInterval)
+
+	secTicker := time.NewTicker(time.Second)
 
 	for {
-		time.Sleep(time.Second)
-		if m.HasResponded() {
-			d.nsqworker.log.Debugf("message %s has responded, exiting touch loop", m.ID)
-			break
-		} else if time.Now().After(lastTouch.Add(touchInterval)) {
+		select {
+		case <-secTicker.C:
+			if m.HasResponded() {
+				d.nsqworker.log.Debugf("message %s has responded, exiting touch loop", m.ID)
+				return
+			}
+		case <-ticker.C:
 			d.nsqworker.log.Debugf("touching message %s", m.ID)
 			m.Touch()
-			lastTouch = time.Now()
 		}
 	}
 }
