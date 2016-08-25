@@ -26,7 +26,7 @@ func (fm FieldMatch) Match(m *Message) (match bool, err error) {
 }
 
 func (fm FieldMatch) String() string {
-	return fmt.Sprintf("%s - %v", fm.Field, fm.Value)
+	return fmt.Sprintf("%s==%v", fm.Field, fm.Value)
 }
 
 
