@@ -47,6 +47,8 @@ func (d *dispatcher) touchLoop(m *nsq.Message) {
 		case <-secTicker.C:
 			if m.HasResponded() {
 				d.nsqworker.log.Debugf("message %s has responded, exiting touch loop", m.ID)
+				secTicker.Stop()
+				ticker.Stop()
 				return
 			}
 		case <-ticker.C:
