@@ -37,18 +37,19 @@ func (d *dispatcher) HandleMessage(message *nsq.Message) error {
 }
 
 func (d *dispatcher) touchLoop(m *nsq.Message) {
+
 	touchInterval := 30 * time.Second
 	ticker := time.NewTicker(touchInterval)
+	defer ticker.Stop()
 
 	secTicker := time.NewTicker(time.Second)
+	defer secTicker.Stop()
 
 	for {
 		select {
 		case <-secTicker.C:
 			if m.HasResponded() {
 				d.nsqworker.log.Debugf("message %s has responded, exiting touch loop", m.ID)
-				secTicker.Stop()
-				ticker.Stop()
 				return
 			}
 		case <-ticker.C:
