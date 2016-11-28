@@ -21,7 +21,7 @@ type Router struct {
 	persistor	Persistor
 }
 
-func NewRouter(routes ...*Route ) *Router
+func NewRouter(routes ...*Route) *Router
 
 
 // implement Router interface
