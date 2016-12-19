@@ -6,6 +6,7 @@ import (
 	"github.com/vrecan/death"
 	"syscall"
 	"github.com/augurysys/go-nsqworker/routers/json"
+	"errors"
 )
 
 
@@ -17,7 +18,8 @@ func grrr(m *json.Message) error {
 	m.Log.Info(m.JsonBody.GetFloat("float"))
 	m.Log.Info(m.JsonBody.GetArray("array"))
 	m.Log.Info(m.JsonBody.GetObject("object"))
-	return nil
+	m.Log.Info("fdsfdsfsfdsffsffd")
+	return errors.New("shitty")
 }
 
 func main() {
@@ -36,8 +38,8 @@ func main() {
 	route.H = grrr
 
 
-	jsnr := json.Router{route}
-	nsqw.RegisterRouter(&jsnr)
+	jsnr := json.NewRouter([]*json.Route{&route}, json.NewRedisPersistor())
+	nsqw.RegisterRouter(jsnr)
 
 	d := death.NewDeath(syscall.SIGINT, syscall.SIGTERM)
 

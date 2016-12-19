@@ -21,13 +21,19 @@ type Router struct {
 	persistor	Persistor
 }
 
-func NewRouter(routes ...*Route) *Router
+func NewRouter(routes []*Route, persistor Persistor) *Router {
+
+	router := new(Router)
+	router.routes = routes
+	router.persistor = persistor
+	return router
+}
 
 
 // implement Router interface
 func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
-	routesRes := make(chan routeRes, len(jr))
+	routesRes := make(chan routeRes, len(jr.routes))
 	jsnMessage, err := newJsonMessage(message)
 	if err != nil {
 		message.Log.Error(err)
@@ -41,6 +47,13 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			defer wg.Done()
 			res := routeRes{status: "matching"}
 
+			if !jr.persistor.ShouldHandle(jsnMessage, rt.H) {
+				message.Log.Debugf("%s shouldn't handle message", rt.H)
+				return
+			} else {
+				message.Log.Debugf("will handle message")
+			}
+
 			var match bool
 			for _, jc := range rt.M {
 
@@ -48,6 +61,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
 				if res.err != nil {
 					message.Log.Error(res.err)
+					jr.persistor.PersistMessage(jsnMessage, rt.H, res.err)
 					routesRes <- res
 					return
 				}
@@ -66,9 +80,10 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			res.status = "processing"
 			if res.err = rt.H(jsnMessage); res.err != nil {
 				message.Log.Error(res.err)
+				jr.persistor.PersistMessage(jsnMessage, rt.H, res.err)
 				routesRes <- res
-
 			}
+
 		}(route)
 	}
 
