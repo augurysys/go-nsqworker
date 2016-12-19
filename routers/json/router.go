@@ -11,11 +11,11 @@ type Router struct {
 	persistor	Persistor
 }
 
-func NewRouter(routes []Route, persistor Persistor) *Router {
+func NewRouter(routes []Route) *Router {
 
 	router := new(Router)
 	router.routes = routes
-	router.persistor = persistor
+	router.persistor = newRedisPersistor()
 	return router
 }
 

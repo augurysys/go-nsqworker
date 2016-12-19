@@ -29,7 +29,7 @@ type redisPersistor struct {
 	pool *stdredis.Pool
 }
 
-func NewRedisPersistor() *redisPersistor {
+func newRedisPersistor() *redisPersistor {
 	redis.Init()
 	return &redisPersistor{pool: redis.GetNewRedisPool()}
 }
