@@ -38,7 +38,7 @@ func main() {
 	route.H = grrr
 
 
-	jsnr := json.NewRouter([]*json.Route{&route}, json.NewRedisPersistor())
+	jsnr := json.NewRouter([]json.Route{route}, json.NewRedisPersistor())
 	nsqw.RegisterRouter(jsnr)
 
 	d := death.NewDeath(syscall.SIGINT, syscall.SIGTERM)

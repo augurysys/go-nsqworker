@@ -7,11 +7,11 @@ import (
 )
 
 type Router struct {
-	routes []*Route
+	routes []Route
 	persistor	Persistor
 }
 
-func NewRouter(routes []*Route, persistor Persistor) *Router {
+func NewRouter(routes []Route, persistor Persistor) *Router {
 
 	router := new(Router)
 	router.routes = routes
@@ -32,7 +32,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 	var wg sync.WaitGroup
 	for _, route := range jr.routes {
 		wg.Add(1)
-		go func(rt *Route) {
+		go func(rt Route) {
 			defer wg.Done()
 
 			if !jr.persistor.ShouldHandle(jsnMessage, rt.H) {
