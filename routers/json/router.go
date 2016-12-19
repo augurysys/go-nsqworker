@@ -4,6 +4,7 @@ import (
 	"github.com/augurysys/go-nsqworker"
 	"sync"
 	"github.com/Sirupsen/logrus"
+	"fmt"
 )
 
 type Router struct {
@@ -34,6 +35,20 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 		wg.Add(1)
 		go func(rt Route) {
 			defer wg.Done()
+
+			defer func() {
+				if r := recover(); r != nil {
+					var err error
+					switch r.(type) {
+					case error:
+						err = r.(error)
+					default:
+						err = fmt.Errorf("panic: %v", r)
+
+					}
+					jr.persistor.PersistMessage(jsnMessage, rt.H, err)
+				}
+			}()
 
 			if !jr.persistor.ShouldHandle(jsnMessage, rt.H) {
 				message.Log.Debugf("%s shouldn't handle message", rt.H)
