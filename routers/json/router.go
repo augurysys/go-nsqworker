@@ -2,19 +2,9 @@ package json
 
 import (
 	"github.com/augurysys/go-nsqworker"
-	"fmt"
 	"sync"
 	"github.com/Sirupsen/logrus"
 )
-
-type routeRes struct {
-	err	error
-	status	string
-}
-
-func (rr routeRes) Error() string {
-	return fmt.Sprintf("an error occured while %s: error=%s", rr.status, rr.err.Error())
-}
 
 type Router struct {
 	routes []*Route
@@ -33,7 +23,6 @@ func NewRouter(routes []*Route, persistor Persistor) *Router {
 // implement Router interface
 func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
-	routesRes := make(chan routeRes, len(jr.routes))
 	jsnMessage, err := newJsonMessage(message)
 	if err != nil {
 		message.Log.Error(err)
@@ -45,24 +34,21 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 		wg.Add(1)
 		go func(rt *Route) {
 			defer wg.Done()
-			res := routeRes{status: "matching"}
 
 			if !jr.persistor.ShouldHandle(jsnMessage, rt.H) {
 				message.Log.Debugf("%s shouldn't handle message", rt.H)
 				return
-			} else {
-				message.Log.Debugf("will handle message")
 			}
 
 			var match bool
+			var err error
 			for _, jc := range rt.M {
 
-				match, res.err = jc.Match(jsnMessage)
+				match, err = jc.Match(jsnMessage)
 
-				if res.err != nil {
-					message.Log.Error(res.err)
-					jr.persistor.PersistMessage(jsnMessage, rt.H, res.err)
-					routesRes <- res
+				if err != nil {
+					message.Log.Error(err)
+					jr.persistor.PersistMessage(jsnMessage, rt.H, err)
 					return
 				}
 
@@ -77,23 +63,15 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				return
 			}
 
-			res.status = "processing"
-			if res.err = rt.H(jsnMessage); res.err != nil {
-				message.Log.Error(res.err)
-				jr.persistor.PersistMessage(jsnMessage, rt.H, res.err)
-				routesRes <- res
+			if err = rt.H(jsnMessage); err != nil {
+				message.Log.Error(err)
+				jr.persistor.PersistMessage(jsnMessage, rt.H, err)
 			}
 
 		}(route)
 	}
 
 	wg.Wait()
-	close(routesRes)
-
-	if len(routesRes) > 0 {
-		message.Log.Warningf("message processing ended with %d errors", len(routesRes))
-	}
-
 
 	return nil
 }
