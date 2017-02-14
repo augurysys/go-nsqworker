@@ -12,14 +12,17 @@ type Router struct {
 	persistor	Persistor
 }
 
-func NewRouter(routes []Route) *Router {
+func NewRouter() *Router {
 
 	router := new(Router)
-	router.routes = routes
 	router.persistor = newRedisPersistor()
+	router.routes = make([]Route, 0)
 	return router
 }
 
+func (r *Router) AddRoute(route Route) {
+	r.routes = append(r.routes, route)
+}
 
 // implement Router interface
 func (jr Router) ProcessMessage(message *nsqworker.Message) error {
