@@ -8,7 +8,7 @@ import (
 )
 
 type Persistor interface {
-	PersistMessage(*Message, Handler, error)
+	PersistMessage(*Message, string, error)
 }
 
 const (
@@ -33,12 +33,12 @@ func newRedisPersistor() *redisPersistor {
 	return &redisPersistor{pool: redis.GetNewRedisPool()}
 }
 
-func (rp *redisPersistor) PersistMessage(message *Message, handler Handler, reason error) {
+func (rp *redisPersistor) PersistMessage(message *Message, name string, reason error) {
 
 	persistTime := time.Now()
 
 	event := failedEvent{
-		Route: handler.String(),
+		Route: name,
 		Topic: message.Topic,
 		PersistedAt: persistTime,
 		Message: string(message.Body),

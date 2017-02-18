@@ -1,19 +1,18 @@
 package json
 
 import (
-	"github.com/augurysys/go-nsqworker"
-	"sync"
-	"github.com/Sirupsen/logrus"
-	"fmt"
-	"time"
-	"golang.org/x/net/context"
 	"bitbucket.org/augury/go-clients/utils"
 	"fmt"
+	"github.com/Sirupsen/logrus"
+	"github.com/augurysys/go-nsqworker"
+	"golang.org/x/net/context"
+	"sync"
+	"time"
 )
 
 type Router struct {
-	routes []Route
-	persistor	Persistor
+	routes    []Route
+	persistor Persistor
 }
 
 func NewRouter() *Router {
@@ -62,7 +61,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 					return
 				}
 
-				var status,message string
+				var status, message string
 				if err == nil {
 					status = "OK"
 				} else {
@@ -73,12 +72,12 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				span := time.Now().Sub(start)
 
 				jsnMessage.Log.WithFields(logrus.Fields{
-					"RID": rID,
-					"route": rt.H.String(),
-					"event": eventName,
+					"RID":    rID,
+					"route":  rt.Name,
+					"event":  eventName,
 					"status": status,
-					"time": span,
-					"state": "END",
+					"time":   span,
+					"state":  "END",
 				}).Infoln(message)
 			}()
 
@@ -91,7 +90,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 						err = fmt.Errorf("panic: %v", r)
 
 					}
-					jr.persistor.PersistMessage(jsnMessage, rt.H, err)
+					jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
 				}
 			}()
 
@@ -107,13 +106,13 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
 				if err != nil {
 					message.Log.Error(err)
-					jr.persistor.PersistMessage(jsnMessage, rt.H, err)
+					jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
 					return
 				}
 
 				if match {
-					message.Log.WithFields(logrus.Fields{"route": rt.H,
-									"condition": jc}).Infof("match found")
+					message.Log.WithFields(logrus.Fields{"route": rt.Name,
+						"condition": jc}).Infof("match found")
 					break
 				}
 			}
@@ -123,15 +122,15 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			jsnMessage.Log.WithFields(logrus.Fields{
-				"RID": rID,
-				"route": rt.H.String(),
+				"RID":   rID,
+				"route": rt.Name,
 				"event": eventName,
 				"state": "START",
 			}).Infoln("")
 
 			if err = rt.H(ctx, jsnMessage); err != nil {
 				message.Log.Error(err)
-				jr.persistor.PersistMessage(jsnMessage, rt.H, err)
+				jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
 			}
 
 		}(route)
@@ -147,8 +146,9 @@ func (jr Router) String() string {
 }
 
 type Route struct {
-	M []Matcher
-	H Handler
+	M    []Matcher
+	H    Handler
+	Name string
 }
 
 func (r Route) ShouldHandle(message *Message) bool {
@@ -172,7 +172,7 @@ func (r Route) ShouldHandle(message *Message) bool {
 					message.Log.Errorf("error converting to string: %v, %T", _route, _route)
 					return false
 				}
-				if route == r.H.String() {
+				if route == r.Name {
 					return true
 				}
 			}
@@ -182,8 +182,4 @@ func (r Route) ShouldHandle(message *Message) bool {
 	return false
 }
 
-
 type Handler func(context.Context, *Message) error
-func (jh Handler) String() string {
-	return nsqworker.GetFunctionName(jh)
-}
