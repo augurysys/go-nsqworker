@@ -32,11 +32,8 @@ func newMessage(original *nsq.Message, topic, channel string, log logrus.FieldLo
 	}
 
 	message.Log = log.WithFields(logrus.Fields{
-		"id":	message.ID,
-		"message_timestamp":	message.Timestamp.String(),
 		"channel":	channel,
 		"topic":	topic,
-		"context":	"message",
 	})
 
 	return &message
