@@ -53,7 +53,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				}
 			}()
 
-			if !jr.persistor.ShouldHandle(jsnMessage, rt.H) {
+			if !rt.ShouldHandle(jsnMessage) {
 				message.Log.Debugf("%s shouldn't handle message", rt.H)
 				return
 			}
@@ -102,6 +102,38 @@ type Route struct {
 	M []Matcher
 	H Handler
 }
+
+func (r Route) ShouldHandle(message *Message) bool {
+
+	recipients, exists := message.JsonBody.GetObject("recipients")
+	if !exists {
+		message.Log.Debug("%+v is not a persisted event", message.JsonBody)
+		return true
+	}
+
+	for channel, _routes := range recipients {
+		routes, ok := _routes.([]interface{})
+		if !ok {
+			message.Log.Errorf("error converting to list: %v, %T", _routes, _routes)
+			return false
+		}
+		if channel == message.Channel {
+			for _, _route := range routes {
+				route, ok := _route.(string)
+				if !ok {
+					message.Log.Errorf("error converting to string: %v, %T", _route, _route)
+					return false
+				}
+				if route == r.H.String() {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 
 type Handler func(*Message) error
 func (jh Handler) String() string {

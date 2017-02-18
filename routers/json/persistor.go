@@ -9,7 +9,6 @@ import (
 
 type Persistor interface {
 	PersistMessage(*Message, Handler, error)
-	ShouldHandle(*Message, Handler) bool
 }
 
 const (
@@ -58,37 +57,6 @@ func (rp *redisPersistor) PersistMessage(message *Message, handler Handler, reas
 	if _, err := conn.Do("ZADD", failedMessagesKey, persistTime.Unix(), b);err != nil {
 		message.Log.Errorf("error adding failed event to queue: %v", err)
 	}
-}
-
-func (rp *redisPersistor) ShouldHandle(message *Message, handler Handler) bool {
-
-	recipients, exists := message.JsonBody.GetObject("recipients")
-	if !exists {
-		message.Log.Debug("%+v is not a persisted event", message.JsonBody)
-		return true
-	}
-
-	for channel, _routes := range recipients {
-		routes, ok := _routes.([]interface{})
-		if !ok {
-			message.Log.Errorf("error converting to list: %v, %T", _routes, _routes)
-			return false
-		}
-		if channel == message.Channel {
-			for _, _route := range routes {
-				route, ok := _route.(string)
-				if !ok {
-					message.Log.Errorf("error converting to string: %v, %T", _route, _route)
-					return false
-				}
-				if route == handler.String() {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
 }
 
 
