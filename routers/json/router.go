@@ -8,6 +8,7 @@ import (
 	"time"
 	"golang.org/x/net/context"
 	"bitbucket.org/augury/go-clients/utils"
+	"fmt"
 )
 
 type Router struct {
@@ -126,7 +127,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				"route": rt.H.String(),
 				"event": eventName,
 				"state": "START",
-			}).Infoln(message)
+			}).Infoln("")
 
 			if err = rt.H(ctx, jsnMessage); err != nil {
 				message.Log.Error(err)
