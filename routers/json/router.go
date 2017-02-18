@@ -5,6 +5,9 @@ import (
 	"sync"
 	"github.com/Sirupsen/logrus"
 	"fmt"
+	"time"
+	"golang.org/x/net/context"
+	"bitbucket.org/augury/go-clients/utils"
 )
 
 type Router struct {
@@ -39,9 +42,47 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 		go func(rt Route) {
 			defer wg.Done()
 
+			var err error
+
+			rID, ok := jsnMessage.JsonBody.GetString("RID")
+			if !ok {
+				rID = utils.GenerateUID(6)
+			}
+
+			eventName, _ := jsnMessage.JsonBody.GetString("name")
+
+			ctx := context.WithValue(context.Background(), "RID", rID)
+			match := true
+			start := time.Now()
+
+			defer func() {
+
+				if !match {
+					return
+				}
+
+				var status,message string
+				if err == nil {
+					status = "OK"
+				} else {
+					status = "FAILED"
+					message = err.Error()
+				}
+
+				span := time.Now().Sub(start)
+
+				jsnMessage.Log.WithFields(logrus.Fields{
+					"RID": rID,
+					"route": rt.H.String(),
+					"event": eventName,
+					"status": status,
+					"time": span,
+					"state": "END",
+				}).Infoln(message)
+			}()
+
 			defer func() {
 				if r := recover(); r != nil {
-					var err error
 					switch r.(type) {
 					case error:
 						err = r.(error)
@@ -55,11 +96,10 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
 			if !rt.ShouldHandle(jsnMessage) {
 				message.Log.Debugf("%s shouldn't handle message", rt.H)
+				match = false
 				return
 			}
 
-			var match bool
-			var err error
 			for _, jc := range rt.M {
 
 				match, err = jc.Match(jsnMessage)
@@ -81,7 +121,14 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				return
 			}
 
-			if err = rt.H(jsnMessage); err != nil {
+			jsnMessage.Log.WithFields(logrus.Fields{
+				"RID": rID,
+				"route": rt.H.String(),
+				"event": eventName,
+				"state": "START",
+			}).Infoln(message)
+
+			if err = rt.H(ctx, jsnMessage); err != nil {
 				message.Log.Error(err)
 				jr.persistor.PersistMessage(jsnMessage, rt.H, err)
 			}
@@ -135,7 +182,7 @@ func (r Route) ShouldHandle(message *Message) bool {
 }
 
 
-type Handler func(*Message) error
+type Handler func(context.Context, *Message) error
 func (jh Handler) String() string {
 	return nsqworker.GetFunctionName(jh)
 }
