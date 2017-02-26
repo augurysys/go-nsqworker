@@ -73,11 +73,13 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
 				jsnMessage.Log.WithFields(logrus.Fields{
 					"RID":    rID,
+					"topic": jsnMessage.Topic,
+					"channel": jsnMessage.Channel,
 					"route":  rt.Name,
 					"event":  eventName,
 					"status": status,
-					"time":   span,
-					"state":  "END",
+					"time":   int64(span / time.Millisecond),
+					"state":  "FINISH",
 				}).Infoln(message)
 			}()
 
@@ -110,11 +112,6 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 					return
 				}
 
-				if match {
-					message.Log.WithFields(logrus.Fields{"route": rt.Name,
-						"condition": jc}).Infof("match found")
-					break
-				}
 			}
 
 			if !match {
@@ -123,6 +120,8 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
 			jsnMessage.Log.WithFields(logrus.Fields{
 				"RID":   rID,
+				"topic": jsnMessage.Topic,
+				"channel": jsnMessage.Channel,
 				"route": rt.Name,
 				"event": eventName,
 				"state": "START",
