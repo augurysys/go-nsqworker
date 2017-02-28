@@ -48,6 +48,13 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			start := time.Now()
 			eventName, _ := jsnMessage.JsonBody.GetString("name")
 
+			rID, ok := jsnMessage.JsonBody.GetString("RID")
+			if !ok {
+				rID = utils.GenerateUID(6)
+			}
+
+			ctx := context.WithValue(context.Background(), "RID", rID)
+
 			defer func() {
 
 				if !match {
@@ -65,6 +72,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				span := time.Now().Sub(start)
 
 				jsnMessage.Log.WithFields(logrus.Fields{
+					"RID" :rID,
 					"topic": jsnMessage.Topic,
 					"channel": jsnMessage.Channel,
 					"route":  rt.Name,
@@ -84,7 +92,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 						err = fmt.Errorf("panic: %v", r)
 
 					}
-					message.Log.Errorf("panic error: %v", err.Error())
+					message.Log.WithField("RID", rID).Errorf("panic error: %v", err.Error())
 					jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
 				}
 			}()
@@ -111,15 +119,8 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				return
 			}
 
-			rID, ok := jsnMessage.JsonBody.GetString("RID")
-			if !ok {
-				rID = utils.GenerateUID(6)
-			}
-
-			ctx := context.WithValue(context.Background(), "RID", rID)
-			jsnMessage.Log = jsnMessage.Log.WithField("RID", rID)
-
 			jsnMessage.Log.WithFields(logrus.Fields{
+				"RID" : rID,
 				"topic": jsnMessage.Topic,
 				"channel": jsnMessage.Channel,
 				"route": rt.Name,
@@ -128,7 +129,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			}).Infoln("")
 
 			if err = rt.H(ctx, jsnMessage); err != nil {
-				message.Log.Error(err)
+				message.Log.WithField("RID", rID).Error(err)
 				jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
 			}
 
