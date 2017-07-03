@@ -1,14 +1,23 @@
 package json
 
 import (
-	"bitbucket.org/augury/go-clients/utils"
 	"fmt"
+	"sync"
+	"time"
+
+	"bitbucket.org/augury/go-clients/utils"
 	"github.com/Sirupsen/logrus"
 	"github.com/augurysys/go-nsqworker"
 	"golang.org/x/net/context"
-	"sync"
-	"time"
 )
+
+type MessageRequeued struct {
+	RetryCount int
+}
+
+func (mr MessageRequeued) Error() string {
+	return fmt.Sprintf("[retry_count=%d]", mr.RetryCount)
+}
 
 type Router struct {
 	routes    []Route
@@ -44,6 +53,7 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 
 			var err error
 
+			requeue := false
 			match := true
 			start := time.Now()
 			eventName, _ := jsnMessage.JsonBody.GetString("name")
@@ -64,6 +74,9 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				var status, message string
 				if err == nil {
 					status = "OK"
+				} else if requeue {
+					status = "RETRY"
+					message = err.Error()
 				} else {
 					status = "FAILED"
 					message = err.Error()
@@ -72,14 +85,14 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				span := time.Now().Sub(start)
 
 				jsnMessage.Log.WithFields(logrus.Fields{
-					"RID" :rID,
-					"topic": jsnMessage.Topic,
+					"RID":     rID,
+					"topic":   jsnMessage.Topic,
 					"channel": jsnMessage.Channel,
-					"route":  rt.Name,
-					"event":  eventName,
-					"status": status,
-					"time":   int64(span / time.Millisecond),
-					"state":  "FINISH",
+					"route":   rt.Name,
+					"event":   eventName,
+					"status":  status,
+					"time":    int64(span / time.Millisecond),
+					"state":   "FINISH",
 				}).Infoln(message)
 			}()
 
@@ -120,17 +133,21 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			jsnMessage.Log.WithFields(logrus.Fields{
-				"RID" : rID,
-				"topic": jsnMessage.Topic,
+				"RID":     rID,
+				"topic":   jsnMessage.Topic,
 				"channel": jsnMessage.Channel,
-				"route": rt.Name,
-				"event": eventName,
-				"state": "START",
+				"route":   rt.Name,
+				"event":   eventName,
+				"state":   "START",
 			}).Infoln("")
 
 			if err = rt.H(ctx, jsnMessage); err != nil {
-				message.Log.WithField("RID", rID).Error(err)
-				jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
+				if _, ok := err.(MessageRequeued); ok {
+					requeue = true
+				} else {
+					message.Log.WithField("RID", rID).Error(err)
+					jr.persistor.PersistMessage(jsnMessage, rt.Name, err)
+				}
 			}
 
 		}(route)
