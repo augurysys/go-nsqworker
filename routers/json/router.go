@@ -3,7 +3,7 @@ package json
 import (
 	"bitbucket.org/augury/go-clients/utils"
 	"fmt"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/augurysys/go-nsqworker"
 	"golang.org/x/net/context"
 	"sync"

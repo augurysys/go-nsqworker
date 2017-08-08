@@ -4,7 +4,7 @@ import (
 	"github.com/nsqio/go-nsq"
 	"sync"
 	"time"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type dispatcher struct {

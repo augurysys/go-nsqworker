@@ -2,7 +2,7 @@ package nsqworker
 
 import (
 	"github.com/nsqio/go-nsq"
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type NsqWorker struct {
