@@ -1,13 +1,32 @@
 package json
 
 import (
-	"bitbucket.org/augury/go-clients/utils"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/augurysys/go-nsqworker"
-	"golang.org/x/net/context"
 	"sync"
 	"time"
+
+	"bitbucket.org/augury/go-clients/utils"
+	"github.com/augurysys/go-nsqworker"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
+)
+
+var (
+	receivedMessagesHistogram = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name: "nsq_received_messages",
+			Help: "received messages historgram",
+		},
+		[]string{"topic", "channel", "event", "status"},
+	)
+	//receivedMessagesCount = prometheus.NewCounterVec(
+	//	prometheus.CounterOpts{
+	//		Name: "nsq_received_messages_count",
+	//		Help: "number of messages received by consumer",
+	//	},
+	//	[]string{"topic", "channel"},
+	//)
 )
 
 type Router struct {
@@ -16,11 +35,15 @@ type Router struct {
 }
 
 func NewRouter() *Router {
-
 	router := new(Router)
 	router.persistor = newRedisPersistor()
 	router.routes = make([]Route, 0)
+	registerMetrics()
 	return router
+}
+
+func registerMetrics() {
+	prometheus.Register(receivedMessagesHistogram)
 }
 
 func (r *Router) AddRoute(route Route) {
@@ -69,17 +92,20 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 					message = err.Error()
 				}
 
-				span := time.Now().Sub(start)
+				span := time.Since(start)
+
+				spanMili := float64(span) / float64(time.Second)
+				receivedMessagesHistogram.WithLabelValues(jsnMessage.Topic, jsnMessage.Channel, eventName, status).Observe(spanMili)
 
 				jsnMessage.Log.WithFields(logrus.Fields{
-					"RID" :rID,
-					"topic": jsnMessage.Topic,
+					"RID":     rID,
+					"topic":   jsnMessage.Topic,
 					"channel": jsnMessage.Channel,
-					"route":  rt.Name,
-					"event":  eventName,
-					"status": status,
-					"time":   int64(span / time.Millisecond),
-					"state":  "FINISH",
+					"route":   rt.Name,
+					"event":   eventName,
+					"status":  status,
+					"time":    int64(span / time.Millisecond),
+					"state":   "FINISH",
 				}).Infoln(message)
 			}()
 
@@ -120,12 +146,12 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			jsnMessage.Log.WithFields(logrus.Fields{
-				"RID" : rID,
-				"topic": jsnMessage.Topic,
+				"RID":     rID,
+				"topic":   jsnMessage.Topic,
 				"channel": jsnMessage.Channel,
-				"route": rt.Name,
-				"event": eventName,
-				"state": "START",
+				"route":   rt.Name,
+				"event":   eventName,
+				"state":   "START",
 			}).Infoln("")
 
 			if err = rt.H(ctx, jsnMessage); err != nil {
