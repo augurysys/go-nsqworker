@@ -16,7 +16,7 @@ var (
 	receivedMessagesHistogram = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "nsq_received_messages",
-			Help: "received messages historgram",
+			Help: "received messages histogram",
 		},
 		[]string{"topic", "channel", "event", "status"},
 	)
