@@ -20,13 +20,6 @@ var (
 		},
 		[]string{"topic", "channel", "event", "status"},
 	)
-	//receivedMessagesCount = prometheus.NewCounterVec(
-	//	prometheus.CounterOpts{
-	//		Name: "nsq_received_messages_count",
-	//		Help: "number of messages received by consumer",
-	//	},
-	//	[]string{"topic", "channel"},
-	//)
 )
 
 type Router struct {
@@ -34,16 +27,15 @@ type Router struct {
 	persistor Persistor
 }
 
+func init() {
+	prometheus.Register(receivedMessagesHistogram)
+}
+
 func NewRouter() *Router {
 	router := new(Router)
 	router.persistor = newRedisPersistor()
 	router.routes = make([]Route, 0)
-	registerMetrics()
 	return router
-}
-
-func registerMetrics() {
-	prometheus.Register(receivedMessagesHistogram)
 }
 
 func (r *Router) AddRoute(route Route) {
