@@ -2,5 +2,3 @@
 .idea
 tool/tool
 tool/main
-vendor/
-Gopkg.*
