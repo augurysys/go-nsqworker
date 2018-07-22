@@ -56,7 +56,7 @@ func (rp *redisPersistor) PersistMessage(message *Message, name string, reason e
 	conn := rp.pool.Get()
 	defer conn.Close()
 
-	if _, err := conn.Do("HSET", failedMessagesKey, utils.GenerateUID(6), b); err != nil {
+	if _, err := conn.Do("HSET", failedMessagesKey, utils.GenerateUID(16), b); err != nil {
 		message.Log.Errorf("error adding failed event to queue: %v", err)
 	}
 }
