@@ -1,10 +1,11 @@
 package json
 
 import (
-	"bitbucket.org/augury/go-clients/clients/redis"
-	stdredis "github.com/garyburd/redigo/redis"
-	"time"
 	"encoding/json"
+	"time"
+
+	"github.com/augurysys/go-clients/clients/redis"
+	stdredis "github.com/garyburd/redigo/redis"
 )
 
 type Persistor interface {
@@ -21,7 +22,7 @@ type failedEvent struct {
 	PersistedAt time.Time `json:"persisted_at"`
 	Message     string    `json:"message"`
 	Channel     string    `json:"channel"`
-	ErrorStr	string	`json:"error_str"`
+	ErrorStr    string    `json:"error_str"`
 }
 
 type redisPersistor struct {
@@ -38,12 +39,12 @@ func (rp *redisPersistor) PersistMessage(message *Message, name string, reason e
 	persistTime := time.Now()
 
 	event := failedEvent{
-		Route: name,
-		Topic: message.Topic,
+		Route:       name,
+		Topic:       message.Topic,
 		PersistedAt: persistTime,
-		Message: string(message.Body),
-		Channel: message.Channel,
-		ErrorStr: reason.Error(),
+		Message:     string(message.Body),
+		Channel:     message.Channel,
+		ErrorStr:    reason.Error(),
 	}
 
 	b, err := json.Marshal(&event)
@@ -54,9 +55,7 @@ func (rp *redisPersistor) PersistMessage(message *Message, name string, reason e
 	conn := rp.pool.Get()
 	defer conn.Close()
 
-	if _, err := conn.Do("ZADD", failedMessagesKey, persistTime.Unix(), b);err != nil {
+	if _, err := conn.Do("ZADD", failedMessagesKey, persistTime.Unix(), b); err != nil {
 		message.Log.Errorf("error adding failed event to queue: %v", err)
 	}
 }
-
-

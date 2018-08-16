@@ -1,13 +1,13 @@
 package json
 
 import (
-	"bitbucket.org/augury/go-clients/utils"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/augurysys/go-nsqworker"
-	"golang.org/x/net/context"
 	"sync"
 	"time"
+
+	"github.com/augurysys/go-clients/utils"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 )
 
 type Router struct {
@@ -72,14 +72,14 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 				span := time.Now().Sub(start)
 
 				jsnMessage.Log.WithFields(logrus.Fields{
-					"RID" :rID,
-					"topic": jsnMessage.Topic,
+					"RID":     rID,
+					"topic":   jsnMessage.Topic,
 					"channel": jsnMessage.Channel,
-					"route":  rt.Name,
-					"event":  eventName,
-					"status": status,
-					"time":   int64(span / time.Millisecond),
-					"state":  "FINISH",
+					"route":   rt.Name,
+					"event":   eventName,
+					"status":  status,
+					"time":    int64(span / time.Millisecond),
+					"state":   "FINISH",
 				}).Infoln(message)
 			}()
 
@@ -120,12 +120,12 @@ func (jr Router) ProcessMessage(message *nsqworker.Message) error {
 			}
 
 			jsnMessage.Log.WithFields(logrus.Fields{
-				"RID" : rID,
-				"topic": jsnMessage.Topic,
+				"RID":     rID,
+				"topic":   jsnMessage.Topic,
 				"channel": jsnMessage.Channel,
-				"route": rt.Name,
-				"event": eventName,
-				"state": "START",
+				"route":   rt.Name,
+				"event":   eventName,
+				"state":   "START",
 			}).Infoln("")
 
 			if err = rt.H(ctx, jsnMessage); err != nil {
