@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/augurysys/go-clients/utils"
+	"github.com/augurysys/go-nsqworker"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
